@@ -33,7 +33,7 @@ import java.util.*
  */
 class MainActivityFragment : Fragment() {
     val client = OkHttpClient()
-
+    var resultBean: WeatherBean? = null;
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -47,15 +47,7 @@ class MainActivityFragment : Fragment() {
 //        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/121.6544,25.1552/forecast.json")
         getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/111.613221,22.086306/forecast.json")
 
-        initData()
-        chart_rain_2h.invalidate()
 
-
-
-
-        initDataWeather()
-        setDataWeather(5, 30f)
-        rainAndWeatherChart.invalidate()
 
     }
 
@@ -82,8 +74,25 @@ class MainActivityFragment : Fragment() {
                 override fun onNext(response: Response) {
                    var result=response.body()!!.string()
                     var bean = Gson().fromJson(result, WeatherBean::class.java)
+                    resultBean=bean
+                    init2HView()
                     set2hData(bean)
+                    chart_rain_2h.invalidate()
 
+
+                    init2DayView()
+                    set2DayData(bean)
+                    chart_rain_2day.invalidate()
+
+                    initDataWeatherView()
+                    setDataWeather(bean)
+                    rainAndWeatherChart.invalidate()
+
+
+
+                    initPm25View()
+                    setPm25Data(bean)
+                    pm25Chart.invalidate()
                 }
 
                 override fun onError(e: Throwable) {
@@ -94,51 +103,52 @@ class MainActivityFragment : Fragment() {
 //        return result
     }
 
-    private fun initDataWeather() {
+    private fun initDataWeatherView() {
 //        rainAndWeatherChart.setViewPortOffsets(0f, 0f, 0f, 0f)
+
+        var description = Description()
+        description.text = "5日天气"
+        description.textColor = Color.parseColor("#000000")
+        rainAndWeatherChart.description = description
+        rainAndWeatherChart.getDescription().setEnabled(true)
+
         rainAndWeatherChart.setBackgroundColor(Color.rgb(104, 241, 175))
-// no description text
-        rainAndWeatherChart.description.isEnabled = false
+
 
         // enable touch gestures
         rainAndWeatherChart.setTouchEnabled(false)
-
-        rainAndWeatherChart.dragDecelerationFrictionCoef = 0.9f
-
         // enable scaling and dragging
-        rainAndWeatherChart.isDragEnabled = true
-        rainAndWeatherChart.setScaleEnabled(true)
-        rainAndWeatherChart.setDrawGridBackground(false)
-        rainAndWeatherChart.isHighlightPerDragEnabled = true
+        rainAndWeatherChart.setDragEnabled(false)
+        rainAndWeatherChart.setScaleEnabled(false)
 
+        // if disabled, scaling can be done on x- and y-axis separately
         rainAndWeatherChart.setPinchZoom(false)
 
-        rainAndWeatherChart.animateX(1500)
 
-        // get the legend (only possible after setting data)
-//        val l = rainAndWeatherChart.legend
+        rainAndWeatherChart.setDrawGridBackground(false)
+        rainAndWeatherChart.setMaxHighlightDistance(300f)
 
-        // modify the legend ...
-//        l.form = Legend.LegendForm.LINE
-//        l.textSize = 11f
-//        l.textColor = Color.WHITE
-//        l.verticalAlignment = Legend.LegendVerticalAlignment.BOTTOM
-//        l.horizontalAlignment = Legend.LegendHorizontalAlignment.LEFT
-//        l.orientation = Legend.LegendOrientation.HORIZONTAL
-//        l.setDrawInside(false)
-//        l.setYOffset(11f);
 
         val xAxis = rainAndWeatherChart.xAxis
         xAxis.textSize = 11f
         xAxis.textColor = Color.WHITE
-        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM)
+        xAxis.setPosition(XAxis.XAxisPosition.TOP)
         xAxis.setDrawGridLines(false)
-        xAxis.setDrawAxisLine(false)
+        xAxis.setDrawAxisLine(true)
+//        xAxis.setLabelCount(5, false)
+
+        xAxis.setValueFormatter { value, axis ->   resultBean?.let {
+            var dateString = it.result.daily.precipitation[(value/100).toInt()].date
+            var skq = it.result.daily.skycon[(value/100).toInt()].value
+            dateString.substring(5,dateString.length)+Skycon.getLogo(skq)
+        } }
 
         val leftAxis = rainAndWeatherChart.axisLeft
         leftAxis.textColor = ColorTemplate.getHoloBlue()
+        leftAxis.setLabelCount(3, false)
+
 //        leftAxis.axisMaximum = 200f
-        leftAxis.axisMinimum = 0f
+//        leftAxis.axisMinimum = 0f
 //        leftAxis.setDrawGridLines(true)
 //        leftAxis.isGranularityEnabled = true
 
@@ -146,42 +156,37 @@ class MainActivityFragment : Fragment() {
         val rightAxis = rainAndWeatherChart.axisRight
         rightAxis.textColor = Color.RED
 //        rightAxis.axisMaximum = 900f
-//        rightAxis.axisMinimum = -200f
+        rightAxis.axisMinimum = 0f
         rightAxis.setDrawGridLines(false)
+        rightAxis.setLabelCount(3, false)
+
         rightAxis.setDrawZeroLine(false)
 //        rightAxis.isGranularityEnabled = false
 
     }
 
-    private fun setDataWeather(count: Int, range: Float) {
+    private fun setDataWeather(resultBean: WeatherBean) {
+        var temperatureList = resultBean.result.daily.temperature
 
-        val values1 = ArrayList<Entry>()
 
-        for (i in 0 until count) {
-            val `val` = (Math.random() * (range / 2f)).toFloat() + 50
-            values1.add(Entry(i.toFloat(), `val`))
+        val maxTemperature = ArrayList<Entry>()
+
+        val minTemperature = ArrayList<Entry>()
+//        val pm25List = ArrayList<Entry>()
+
+        for (i in 0 until temperatureList.size) {
+            maxTemperature.add(Entry(i.toFloat()*100, temperatureList.get(i).max.toFloat()))
+            minTemperature.add(Entry(i.toFloat()*100, temperatureList.get(i).min.toFloat()))
+//            pm25List.add(Entry(i.toFloat(), resultBean.result.daily.pm25.get(i).max.toFloat()))
+
         }
 
-        val values2 = ArrayList<Entry>()
-
-        for (i in 0 until count) {
-            val `val` = (Math.random() * range).toFloat() + 60
-            values2.add(Entry(i.toFloat(), `val`))
-        }
-
-        val values3 = ArrayList<Entry>()
-
-        for (i in 0 until count) {
-            val `val` = (Math.random() * range).toFloat() + 10
-            values3.add(Entry(i.toFloat(), `val`))
-        }
 
         val set1: LineDataSet
         val set2: LineDataSet
-        val set3: LineDataSet
 
         // create a dataset and give it a type
-        set1 = LineDataSet(values1, "最低温度")
+        set1 = LineDataSet(minTemperature, "最低温度")
         set1.mode = LineDataSet.Mode.CUBIC_BEZIER
 
         set1.axisDependency = YAxis.AxisDependency.LEFT
@@ -199,8 +204,8 @@ class MainActivityFragment : Fragment() {
         //set1.setCircleHoleColor(Color.WHITE);
 
         // create a dataset and give it a type
-        set2 = LineDataSet(values2, "最高温度")
-        set2.axisDependency = YAxis.AxisDependency.RIGHT
+        set2 = LineDataSet(maxTemperature, "最高温度")
+        set2.axisDependency = YAxis.AxisDependency.LEFT
         set2.color = Color.RED
         set2.setCircleColor(Color.WHITE)
         set2.lineWidth = 2f
@@ -211,19 +216,9 @@ class MainActivityFragment : Fragment() {
         set2.highLightColor = Color.rgb(244, 117, 117)
         //set2.setFillFormatter(new MyFillFormatter(900f));
 
-        set3 = LineDataSet(values3, "PM2.5")
-        set3.axisDependency = YAxis.AxisDependency.RIGHT
-        set3.color = Color.YELLOW
-        set3.setCircleColor(Color.WHITE)
-        set3.lineWidth = 2f
-        set3.circleRadius = 3f
-        set3.fillAlpha = 65
-        set3.fillColor = ColorTemplate.colorWithAlpha(Color.YELLOW, 200)
-        set3.setDrawCircleHole(false)
-        set3.highLightColor = Color.rgb(244, 117, 117)
 
         // create a data object with the data sets
-        val data = LineData(set1, set2, set3)
+        val data = LineData(set1, set2)
         data.setValueTextColor(Color.WHITE)
         data.setValueTextSize(9f)
 
@@ -232,7 +227,7 @@ class MainActivityFragment : Fragment() {
     }
 
 
-    private fun initData() {
+    private fun init2HView() {
 
 //        chart_rain_2h.setViewPortOffsets(0f, 0f, 0f, 0f)
         chart_rain_2h.setBackgroundColor(Color.rgb(104, 241, 175))
@@ -269,18 +264,28 @@ class MainActivityFragment : Fragment() {
 
         val leftAxis = chart_rain_2h.getAxisLeft()
 
-        leftAxis.setLabelCount(5, false)
-//        leftAxis.setAxisMinimum(0f) // this replaces setStartAtZero(true)
+        leftAxis.setLabelCount(3, false)
+        leftAxis.setAxisMinimum(0f) // this replaces setStartAtZero(true)
         leftAxis.setTextColor(Color.WHITE)
 //        leftAxis.setPosition(YAxis.YAxisLabelPosition.INSIDE_CHART)
         leftAxis.setDrawGridLines(false)
         leftAxis.setAxisLineColor(Color.WHITE)
-//        leftAxis.axisMaximum = 100f
+        leftAxis.axisMaximum = 100f
+        leftAxis.setValueFormatter { value, axis ->
+            when ((value).toInt()) {
+                in 0..1->""
+                in 1..25 ->"小雨"
+                in 25..35->"中雨"
+                else -> "大雨"
+            }
+
+        }
+
 
 
         chart_rain_2h.getAxisRight().setEnabled(true)
         val rightAxis = chart_rain_2h.getAxisRight()
-        rightAxis.setLabelCount(5, false)
+        rightAxis.setLabelCount(3, false)
         rightAxis.setDrawGridLines(false)
         rightAxis.setTextColor(Color.WHITE)
         rightAxis.setAxisLineColor(Color.WHITE)
@@ -296,6 +301,140 @@ class MainActivityFragment : Fragment() {
         // don't forget to refresh the drawing
         chart_rain_2h.invalidate()
     }
+    private fun init2DayView() {
+
+//        chart_rain_2day.setViewPortOffsets(0f, 0f, 0f, 0f)
+        chart_rain_2day.setBackgroundColor(Color.rgb(104, 241, 175))
+
+        // no description text
+        var description = Description()
+        description.text = "48小时雨量"
+        description.textColor = Color.parseColor("#000000")
+        chart_rain_2day.description = description
+        chart_rain_2day.getDescription().setEnabled(true)
+
+        // enable touch gestures
+        chart_rain_2day.setTouchEnabled(true)
+        // enable scaling and dragging
+        chart_rain_2day.setDragEnabled(true)
+        chart_rain_2day.setScaleEnabled(true)
+
+        // if disabled, scaling can be done on x- and y-axis separately
+        chart_rain_2day.setPinchZoom(false)
+
+//        chart_rain_2day.zoom(2f, 1f, 0f, 0f);
+
+        chart_rain_2day.setDrawGridBackground(false)
+        chart_rain_2day.setMaxHighlightDistance(300f)
+
+
+        val xAxis = chart_rain_2day.getXAxis()
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM)
+        xAxis.setDrawGridLines(false)
+        xAxis.setDrawAxisLine(true)
+        xAxis.setTextColor(Color.WHITE)
+        xAxis.setLabelCount(5, false)
+
+
+        val leftAxis = chart_rain_2day.getAxisLeft()
+
+        leftAxis.setLabelCount(3, false)
+        leftAxis.setAxisMinimum(0f) // this replaces setStartAtZero(true)
+        leftAxis.setTextColor(Color.WHITE)
+//        leftAxis.setPosition(YAxis.YAxisLabelPosition.INSIDE_CHART)
+        leftAxis.setDrawGridLines(false)
+        leftAxis.setAxisLineColor(Color.WHITE)
+//        leftAxis.axisMaximum = 100f
+        leftAxis.setValueFormatter { value, axis ->
+            when ((value).toInt()) {
+                in 0..1 -> ""
+                in 1..25 -> "小雨"
+                in 25..35 -> "中雨"
+                else -> "大雨"
+            }
+        }
+
+        chart_rain_2day.getAxisRight().setEnabled(true)
+        val rightAxis = chart_rain_2day.getAxisRight()
+        rightAxis.setLabelCount(3, false)
+        rightAxis.setDrawGridLines(false)
+        rightAxis.setTextColor(Color.WHITE)
+        rightAxis.setAxisLineColor(Color.WHITE)
+
+//        rightAxis.setAxisMinimum(0f) // this replaces setStartAtZero(true)
+//        rightAxis.axisMaximum = 100f
+
+        chart_rain_2day.getLegend().setEnabled(false)
+
+        chart_rain_2day.animateXY(2000, 2000)
+
+        // don't forget to refresh the drawing
+        chart_rain_2day.invalidate()
+    }
+    private fun initPm25View() {
+
+//        pm25Chart.setViewPortOffsets(0f, 0f, 0f, 0f)
+        pm25Chart.setBackgroundColor(Color.rgb(104, 241, 175))
+
+        // no description text
+        var description = Description()
+        description.text = "5日PM2.5"
+        description.textColor = Color.parseColor("#000000")
+        pm25Chart.description = description
+        pm25Chart.getDescription().setEnabled(true)
+
+        // enable touch gestures
+        pm25Chart.setTouchEnabled(true)
+        // enable scaling and dragging
+        pm25Chart.setDragEnabled(true)
+        pm25Chart.setScaleEnabled(true)
+
+        // if disabled, scaling can be done on x- and y-axis separately
+        pm25Chart.setPinchZoom(false)
+
+//        pm25Chart.zoom(2f, 1f, 0f, 0f);
+
+        pm25Chart.setDrawGridBackground(false)
+        pm25Chart.setMaxHighlightDistance(300f)
+
+
+        val xAxis = pm25Chart.getXAxis()
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM)
+        xAxis.setDrawGridLines(false)
+        xAxis.setDrawAxisLine(true)
+        xAxis.setTextColor(Color.WHITE)
+        xAxis.setLabelCount(5, false)
+
+
+        val leftAxis = pm25Chart.getAxisLeft()
+
+        leftAxis.setLabelCount(3, false)
+        leftAxis.setAxisMinimum(0f) // this replaces setStartAtZero(true)
+        leftAxis.setTextColor(Color.WHITE)
+//        leftAxis.setPosition(YAxis.YAxisLabelPosition.INSIDE_CHART)
+        leftAxis.setDrawGridLines(false)
+        leftAxis.setAxisLineColor(Color.WHITE)
+//        leftAxis.axisMaximum = 100f
+
+
+        pm25Chart.getAxisRight().setEnabled(true)
+        val rightAxis = pm25Chart.getAxisRight()
+        rightAxis.setLabelCount(3, false)
+        rightAxis.setDrawGridLines(false)
+        rightAxis.setTextColor(Color.WHITE)
+        rightAxis.setAxisLineColor(Color.WHITE)
+
+//        rightAxis.setAxisMinimum(0f) // this replaces setStartAtZero(true)
+//        rightAxis.axisMaximum = 100f
+
+
+        pm25Chart.getLegend().setEnabled(false)
+
+        pm25Chart.animateXY(2000, 2000)
+
+        // don't forget to refresh the drawing
+        pm25Chart.invalidate()
+    }
 
     private fun set2hData(bean: WeatherBean) {
 
@@ -303,7 +442,7 @@ class MainActivityFragment : Fragment() {
 
 
         for (i in 0 until bean.result.minutely.precipitation_2h.size) {
-            values.add(Entry(i.toFloat(), bean.result.minutely.precipitation_2h.get(i).toFloat()*100))
+            values.add(Entry(i.toFloat(), (bean.result.minutely.precipitation_2h.get(i)*100).toFloat()))
         }
 
         val set1: LineDataSet
@@ -334,6 +473,83 @@ class MainActivityFragment : Fragment() {
 
         // set data
         chart_rain_2h.data = data
+    }
+    private fun set2DayData(bean: WeatherBean) {
+
+        val values = ArrayList<Entry>()
+
+
+        for (i in 0 until bean.result.hourly.precipitation.size) {
+            values.add(Entry(i.toFloat(), bean.result.hourly.precipitation.get(i).value.toFloat()*100))
+        }
+
+        val set1: LineDataSet
+
+
+        // create a dataset and give it a type
+        set1 = LineDataSet(values, "DataSet 1")
+
+        set1.mode = LineDataSet.Mode.CUBIC_BEZIER
+        set1.cubicIntensity = 0.2f
+        set1.setDrawFilled(true)
+        set1.setDrawCircles(false)
+        set1.lineWidth = 1.8f
+        set1.circleRadius = 4f
+        set1.setCircleColor(Color.WHITE)
+        set1.highLightColor = Color.rgb(244, 117, 117)
+        set1.color = Color.WHITE
+        set1.fillColor = Color.WHITE
+        set1.fillAlpha = 100
+        set1.setDrawHorizontalHighlightIndicator(false)
+        set1.fillFormatter = IFillFormatter { dataSet, dataProvider -> chart_rain_2day.axisLeft.axisMinimum }
+
+        // create a data object with the data sets
+        val data = LineData(set1)
+//            data.setValueTypeface(tfLight)
+        data.setValueTextSize(9f)
+        data.setDrawValues(false)
+
+        // set data
+        chart_rain_2day.data = data
+    }
+    private fun setPm25Data(bean: WeatherBean) {
+
+        val values = ArrayList<Entry>()
+
+
+        for (i in 0 until bean.result.daily.pm25.size) {
+            values.add(Entry(i.toFloat(), bean.result.daily.pm25.get(i).max.toFloat()))
+        }
+
+        val set1: LineDataSet
+
+
+        // create a dataset and give it a type
+        set1 = LineDataSet(values, "DataSet 1")
+
+        set1.mode = LineDataSet.Mode.CUBIC_BEZIER
+        set1.cubicIntensity = 0.2f
+        set1.setDrawFilled(true)
+        set1.setDrawCircles(false)
+        set1.lineWidth = 1.8f
+        set1.circleRadius = 4f
+        set1.setCircleColor(Color.WHITE)
+        set1.highLightColor = Color.rgb(244, 117, 117)
+        set1.color = Color.WHITE
+        set1.fillColor = Color.YELLOW
+        set1.fillAlpha = 100
+        set1.setDrawHorizontalHighlightIndicator(false)
+        set1.fillFormatter = IFillFormatter { dataSet, dataProvider -> pm25Chart.axisLeft.axisMinimum }
+
+        // create a data object with the data sets
+        val data = LineData(set1)
+//            data.setValueTypeface(tfLight)
+        data.setValueTextColor(Color.WHITE)
+        data.setValueTextSize(9f)
+        data.setDrawValues(true)
+
+        // set data
+        pm25Chart.data = data
     }
 
 

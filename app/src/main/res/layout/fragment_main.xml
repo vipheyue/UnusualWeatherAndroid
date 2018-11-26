@@ -5,6 +5,7 @@
 		xmlns:tools="http://schemas.android.com/tools"
 		android:layout_width="match_parent"
 		android:layout_height="match_parent"
+		android:background="#67EEAD"
 		tools:context=".MainActivityFragment"
 		tools:showIn="@layout/activity_main">
 	<LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
@@ -44,7 +45,12 @@
 				android:layout_width="match_parent"
 				android:layout_height="160dp"
 				android:layout_marginTop="10dp"
-
+		/>
+		<com.github.mikephil.charting.charts.LineChart
+				android:id="@+id/pm25Chart"
+				android:layout_width="match_parent"
+				android:layout_height="160dp"
+				android:layout_marginTop="10dp"
 		/>
 	</LinearLayout>
 </android.support.v4.widget.NestedScrollView>
