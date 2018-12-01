@@ -5,7 +5,6 @@
 		xmlns:tools="http://schemas.android.com/tools"
 		android:layout_width="match_parent"
 		android:layout_height="match_parent"
-		android:background="#67EEAD"
 		tools:context=".MainActivityFragment"
 		tools:showIn="@layout/activity_main">
 	<LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
@@ -14,7 +13,7 @@
 				android:layout_width="match_parent"
 				android:layout_height="80dp"
 				android:layout_margin="10dp"
-				android:background="#888080"
+				android:background="#f2eded"
 				android:orientation="vertical"
 				android:padding="10dp">
 
@@ -44,7 +43,7 @@
 				android:id="@+id/rainAndWeatherChart"
 				android:layout_width="match_parent"
 				android:layout_height="160dp"
-				android:layout_marginTop="10dp"
+				android:layout_marginTop="16dp"
 		/>
 		<com.github.mikephil.charting.charts.LineChart
 				android:id="@+id/pm25Chart"
