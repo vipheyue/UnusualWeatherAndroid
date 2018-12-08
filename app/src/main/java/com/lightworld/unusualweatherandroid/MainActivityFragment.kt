@@ -3,6 +3,7 @@ package com.lightworld.unusualweatherandroid
 import android.graphics.Color
 import android.os.Bundle
 import android.support.v4.app.Fragment
+import android.support.v7.widget.GridLayoutManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -25,7 +26,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
-import java.util.*
 
 
 /**
@@ -34,6 +34,11 @@ import java.util.*
 class MainActivityFragment : Fragment() {
     val client = OkHttpClient()
     var resultBean: WeatherBean? = null;
+    private var mAnimationAdapter: SimpleIntroduceAdapter? = null
+    private var mskyAdapter: SkyAdapter? = null
+    private var haveRain2h = false
+    private var haveRain48h = false
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -44,10 +49,10 @@ class MainActivityFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-//        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/121.6544,25.1552/forecast.json")
-        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/111.613221,22.086306/forecast.json")
+//        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/116.357358,39.976570/forecast.json")
+        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/121.6544,25.1552/forecast.json")
+//        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/111.613221,22.086306/forecast.json")
 //        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/125.395741,23.917337/forecast.json")
-
 
 
     }
@@ -65,7 +70,7 @@ class MainActivityFragment : Fragment() {
         }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(object : Observer<Response>{
+            .subscribe(object : Observer<Response> {
                 override fun onComplete() {
                 }
 
@@ -73,9 +78,12 @@ class MainActivityFragment : Fragment() {
                 }
 
                 override fun onNext(response: Response) {
-                   var result=response.body()!!.string()
+                    var result = response.body()!!.string()
                     var bean = Gson().fromJson(result, WeatherBean::class.java)
-                    resultBean=bean
+                    resultBean = bean
+
+                    initRecyclerView(bean)
+
                     init2HView()
                     set2hData(bean)
                     chart_rain_2h.invalidate()
@@ -84,6 +92,8 @@ class MainActivityFragment : Fragment() {
                     init2DayView()
                     set2DayData(bean)
                     chart_rain_2day.invalidate()
+
+                    initSkyRecyclerView(bean)
 
                     initDataWeatherView()
                     setDataWeather(bean)
@@ -94,6 +104,9 @@ class MainActivityFragment : Fragment() {
                     initPm25View()
                     setPm25Data(bean)
                     pm25Chart.invalidate()
+
+
+                    controlRainView()
                 }
 
                 override fun onError(e: Throwable) {
@@ -104,11 +117,72 @@ class MainActivityFragment : Fragment() {
 //        return result
     }
 
+    private fun controlRainView() {
+//        haveRain2h=false
+//        haveRain48h=false
+        if (!haveRain2h) {
+            chart_rain_2h.visibility = View.GONE
+            tv_rain2h_des.visibility = View.VISIBLE
+            tv_rain2h_des.text = "两小时内无雨"
+        } else {
+            chart_rain_2h.visibility = View.VISIBLE
+            tv_rain2h_des.visibility = View.GONE
+        }
+
+        if (!haveRain48h) {
+            chart_rain_2day.visibility = View.GONE
+            tv_rain48h_des.visibility = View.VISIBLE
+            tv_rain48h_des.text = "48小时内无雨"
+        } else {
+            chart_rain_2day.visibility = View.VISIBLE
+            tv_rain48h_des.visibility = View.GONE
+        }
+
+    }
+
+    private fun initSkyRecyclerView(resultBean: WeatherBean) {
+        mSkyRecyclerView.setHasFixedSize(true)
+        mSkyRecyclerView.setLayoutManager(GridLayoutManager(activity, 5))
+        mskyAdapter = SkyAdapter()
+        mSkyRecyclerView.adapter = mskyAdapter
+        var list = ArrayList<SkyBean>()
+        for (skyconBeanX in resultBean.result.daily.skycon) {
+            var dateString = skyconBeanX.date
+            var substring = dateString.substring(5, dateString.length)
+            list.add(SkyBean(Skycon.getLogo(skyconBeanX.value), substring))
+        }
+
+        mskyAdapter?.setNewData(list)
+
+    }
+
+    private fun initRecyclerView(resultBean: WeatherBean) {
+
+        mRecyclerView.setHasFixedSize(true)
+        mRecyclerView.setLayoutManager(GridLayoutManager(activity, 3))
+        mAnimationAdapter = SimpleIntroduceAdapter()
+        mRecyclerView.adapter = mAnimationAdapter
+        var list = ArrayList<SimpleIntroduceBean>()
+        list.add(SimpleIntroduceBean("预测", resultBean.result.hourly.description))//第一个 为预测描述
+        var todayTemperatureBean = resultBean.result.daily.temperature[0]
+        var todayHourTemperatureBean = resultBean.result.hourly.temperature[0]
+        list.add(
+            SimpleIntroduceBean(
+                todayHourTemperatureBean.value.toInt().toString() + "℃",
+                todayTemperatureBean.min.toInt().toString() + "-" + todayTemperatureBean.max.toInt().toString() + "℃"
+            )
+        )
+        list.add(SimpleIntroduceBean(resultBean.result.daily.pm25.get(0).max.toInt().toString(), "PM2.5"))
+        mAnimationAdapter?.setNewData(list)
+    }
+
     private fun initDataWeatherView() {
 //        rainAndWeatherChart.setViewPortOffsets(0f, 0f, 0f, 0f)
 
         var description = Description()
-        description.text = "5日天气"
+        description.text = "5日温度"
+        description.setTextSize(24f)
+
         description.textColor = Color.parseColor("#000000")
         rainAndWeatherChart.description = description
         rainAndWeatherChart.getDescription().setEnabled(true)
@@ -129,17 +203,13 @@ class MainActivityFragment : Fragment() {
         xAxis.setDrawAxisLine(true)
         xAxis.setAxisLineColor(ColorTemplate.getHoloBlue())
 
-        xAxis.setValueFormatter { value, axis ->   resultBean?.let {
-            var dateString = it.result.daily.precipitation[(value/100).toInt()].date
-            var skq = it.result.daily.skycon[(value/100).toInt()].value
-            dateString.substring(5,dateString.length)+""+Skycon.getLogo(skq)
-        } }
-
-
-
-
-
-
+        xAxis.setValueFormatter { value, axis ->
+            resultBean?.let {
+                var dateString = it.result.daily.precipitation[(value / 100).toInt()].date
+                var skq = it.result.daily.skycon[(value / 100).toInt()].value
+                dateString.substring(5, dateString.length) + "" + Skycon.getLogo(skq)
+            }
+        }
 
 
         val leftAxis = rainAndWeatherChart.axisLeft
@@ -169,8 +239,8 @@ class MainActivityFragment : Fragment() {
 //        val pm25List = ArrayList<Entry>()
 
         for (i in 0 until temperatureList.size) {
-            maxTemperature.add(Entry(i.toFloat()*100, temperatureList.get(i).max.toFloat()))
-            minTemperature.add(Entry(i.toFloat()*100, temperatureList.get(i).min.toFloat()))
+            maxTemperature.add(Entry(i.toFloat() * 100, temperatureList.get(i).max.toFloat()))
+            minTemperature.add(Entry(i.toFloat() * 100, temperatureList.get(i).min.toFloat()))
 //            pm25List.add(Entry(i.toFloat(), resultBean.result.daily.pm25.get(i).max.toFloat()))
 
         }
@@ -229,6 +299,7 @@ class MainActivityFragment : Fragment() {
         // no description text
         var description = Description()
         description.text = "2小时雨量"
+        description.setTextSize(24f)
         description.textColor = Color.parseColor("#000000")
         chart_rain_2h.description = description
         chart_rain_2h.getDescription().setEnabled(true)
@@ -249,7 +320,7 @@ class MainActivityFragment : Fragment() {
         xAxis.setTextColor(Color.BLACK)
         xAxis.setLabelCount(5, false)
         xAxis.setValueFormatter { value, axis ->
-            value.toInt().toString()+"分钟"
+            value.toInt().toString() + "分钟"
         }
 
         val leftAxis = chart_rain_2h.getAxisLeft()
@@ -263,9 +334,9 @@ class MainActivityFragment : Fragment() {
         leftAxis.axisMaximum = 100f
         leftAxis.setValueFormatter { value, axis ->
             when ((value).toInt()) {
-                in 0..1->""
-                in 1..25 ->"小雨"
-                in 25..35->"中雨"
+                in 0..1 -> ""
+                in 1..25 -> "小雨"
+                in 25..35 -> "中雨"
                 else -> "大雨"
             }
 
@@ -290,6 +361,7 @@ class MainActivityFragment : Fragment() {
         // don't forget to refresh the drawing
         chart_rain_2h.invalidate()
     }
+
     private fun init2DayView() {
 
 //        chart_rain_2day.setViewPortOffsets(0f, 0f, 0f, 0f)
@@ -298,6 +370,8 @@ class MainActivityFragment : Fragment() {
         // no description text
         var description = Description()
         description.text = "48小时雨量"
+        description.setTextSize(24f)
+
         description.textColor = Color.parseColor("#000000")
         chart_rain_2day.description = description
         chart_rain_2day.getDescription().setEnabled(true)
@@ -324,7 +398,7 @@ class MainActivityFragment : Fragment() {
         xAxis.setTextColor(Color.BLACK)
         xAxis.setLabelCount(5, false)
         xAxis.setValueFormatter { value, axis ->
-            value.toInt().toString()+"小时"
+            value.toInt().toString() + "小时"
         }
 
         val leftAxis = chart_rain_2day.getAxisLeft()
@@ -363,6 +437,7 @@ class MainActivityFragment : Fragment() {
         // don't forget to refresh the drawing
         chart_rain_2day.invalidate()
     }
+
     private fun initPm25View() {
 
 //        pm25Chart.setViewPortOffsets(0f, 0f, 0f, 0f)
@@ -371,6 +446,8 @@ class MainActivityFragment : Fragment() {
         // no description text
         var description = Description()
         description.text = "5日PM2.5"
+        description.setTextSize(24f)
+
         description.textColor = Color.parseColor("#000000")
         pm25Chart.description = description
         pm25Chart.getDescription().setEnabled(true)
@@ -434,7 +511,11 @@ class MainActivityFragment : Fragment() {
 
 
         for (i in 0 until bean.result.minutely.precipitation_2h.size) {
-            values.add(Entry(i.toFloat(), (bean.result.minutely.precipitation_2h.get(i)*100).toFloat()))
+            var yuliang = bean.result.minutely.precipitation_2h.get(i)
+            if (yuliang > 0.06) {
+                haveRain2h = true
+            }
+            values.add(Entry(i.toFloat(), (yuliang * 100).toFloat()))
         }
 
         val set1: LineDataSet
@@ -466,13 +547,18 @@ class MainActivityFragment : Fragment() {
         // set data
         chart_rain_2h.data = data
     }
+
     private fun set2DayData(bean: WeatherBean) {
 
         val values = ArrayList<Entry>()
 
 
         for (i in 0 until bean.result.hourly.precipitation.size) {
-            values.add(Entry(i.toFloat(), bean.result.hourly.precipitation.get(i).value.toFloat()*100))
+            var rainValue = bean.result.hourly.precipitation.get(i).value.toFloat()
+            if (rainValue > 0.06) {
+                haveRain48h = true
+            }
+            values.add(Entry(i.toFloat(), rainValue * 100))
         }
 
         val set1: LineDataSet
@@ -504,6 +590,7 @@ class MainActivityFragment : Fragment() {
         // set data
         chart_rain_2day.data = data
     }
+
     private fun setPm25Data(bean: WeatherBean) {
 
         val values = ArrayList<Entry>()
@@ -533,11 +620,9 @@ class MainActivityFragment : Fragment() {
         set1.setDrawCircleHole(false)
 
         set1.setDrawHorizontalHighlightIndicator(false)
-        set1.fillFormatter = IFillFormatter { dataSet, dataProvider -> pm25Chart.axisLeft.axisMinimum }
-
-
-
-
+        set1.fillFormatter = IFillFormatter { dataSet, dataProvider ->
+            pm25Chart.axisLeft.axisMinimum
+        }
 
 
         // create a data object with the data sets
