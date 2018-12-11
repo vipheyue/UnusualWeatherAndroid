@@ -48,10 +48,9 @@ class MainActivityFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
 //        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/116.357358,39.976570/forecast.json")
-        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/121.6544,25.1552/forecast.json")
-//        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/111.613221,22.086306/forecast.json")
+//        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/121.6544,25.1552/forecast.json")
+        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/111.613221,22.086306/forecast.json")
 //        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/125.395741,23.917337/forecast.json")
 
 
@@ -187,6 +186,7 @@ class MainActivityFragment : Fragment() {
         rainAndWeatherChart.description = description
         rainAndWeatherChart.getDescription().setEnabled(true)
 //        rainAndWeatherChart.setBackgroundColor(Color.rgb(104, 241, 175))
+
         rainAndWeatherChart.setTouchEnabled(false)
         rainAndWeatherChart.setDragEnabled(false)
         rainAndWeatherChart.setScaleEnabled(false)
@@ -440,69 +440,55 @@ class MainActivityFragment : Fragment() {
 
     private fun initPm25View() {
 
-//        pm25Chart.setViewPortOffsets(0f, 0f, 0f, 0f)
-//        pm25Chart.setBackgroundColor(Color.rgb(104, 241, 175))
 
-        // no description text
         var description = Description()
         description.text = "5日PM2.5"
         description.setTextSize(24f)
-
         description.textColor = Color.parseColor("#000000")
         pm25Chart.description = description
         pm25Chart.getDescription().setEnabled(true)
 
-        // enable touch gestures
         pm25Chart.setTouchEnabled(false)
-        // enable scaling and dragging
         pm25Chart.setDragEnabled(false)
         pm25Chart.setScaleEnabled(false)
-
-        // if disabled, scaling can be done on x- and y-axis separately
         pm25Chart.setPinchZoom(false)
 
-//        pm25Chart.zoom(2f, 1f, 0f, 0f);
-
         pm25Chart.setDrawGridBackground(false)
-        pm25Chart.setMaxHighlightDistance(300f)
+//        pm25Chart.setMaxHighlightDistance(300f)
 
-
-        val xAxis = pm25Chart.getXAxis()
+        val xAxis = pm25Chart.xAxis
+        xAxis.textSize = 11f
+        xAxis.textColor = Color.BLACK
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM)
         xAxis.setDrawGridLines(false)
         xAxis.setDrawAxisLine(true)
-        xAxis.setTextColor(Color.BLACK)
-        xAxis.setLabelCount(5, false)
+        xAxis.setAxisLineColor(ColorTemplate.getHoloBlue())
+
+        xAxis.setValueFormatter { value, axis ->
+            resultBean?.let {
+                var dateString = it.result.daily.precipitation[(value / 100).toInt()].date
+                var skq = it.result.daily.skycon[(value / 100).toInt()].value
+                dateString.substring(5, dateString.length) + "" + Skycon.getLogo(skq)
+            }
+        }
 
 
-        val leftAxis = pm25Chart.getAxisLeft()
-
+        val leftAxis = pm25Chart.axisLeft
+        leftAxis.textColor = Color.BLACK
         leftAxis.setLabelCount(3, false)
-        leftAxis.setAxisMinimum(0f) // this replaces setStartAtZero(true)
-        leftAxis.setTextColor(Color.BLACK)
-//        leftAxis.setPosition(YAxis.YAxisLabelPosition.INSIDE_CHART)
         leftAxis.setDrawGridLines(false)
-        leftAxis.setAxisLineColor(Color.BLACK)
-//        leftAxis.axisMaximum = 100f
 
-
-        pm25Chart.getAxisRight().setEnabled(true)
-        val rightAxis = pm25Chart.getAxisRight()
-        rightAxis.setLabelCount(3, false)
-        rightAxis.setDrawGridLines(false)
-        rightAxis.setTextColor(Color.BLACK)
-        rightAxis.setAxisLineColor(Color.BLACK)
-
-//        rightAxis.setAxisMinimum(0f) // this replaces setStartAtZero(true)
-//        rightAxis.axisMaximum = 100f
-
-
+        pm25Chart.getAxisRight().setEnabled(false)
         pm25Chart.getLegend().setEnabled(false)
 
-        pm25Chart.animateXY(2000, 2000)
+        val rightAxis = pm25Chart.axisRight
+        rightAxis.textColor = Color.RED
+//        rightAxis.axisMaximum = 900f
+        rightAxis.axisMinimum = 0f
+        rightAxis.setDrawGridLines(false)
+        rightAxis.setLabelCount(3, false)
+        rightAxis.setDrawZeroLine(false)
 
-        // don't forget to refresh the drawing
-        pm25Chart.invalidate()
     }
 
     private fun set2hData(bean: WeatherBean) {
@@ -597,14 +583,14 @@ class MainActivityFragment : Fragment() {
 
 
         for (i in 0 until bean.result.daily.pm25.size) {
-            values.add(Entry(i.toFloat(), bean.result.daily.pm25.get(i).max.toFloat()))
+            values.add(Entry(i.toFloat()*100, bean.result.daily.pm25.get(i).max.toFloat()))
         }
 
         val set1: LineDataSet
 
 
         // create a dataset and give it a type
-        set1 = LineDataSet(values, "DataSet 1")
+        set1 = LineDataSet(values, "")
 
         set1.mode = LineDataSet.Mode.CUBIC_BEZIER
         set1.cubicIntensity = 0.2f
@@ -618,11 +604,12 @@ class MainActivityFragment : Fragment() {
         set1.fillColor = Color.BLACK
         set1.fillAlpha = 65
         set1.setDrawCircleHole(false)
+        set1.axisDependency = YAxis.AxisDependency.LEFT
 
-        set1.setDrawHorizontalHighlightIndicator(false)
-        set1.fillFormatter = IFillFormatter { dataSet, dataProvider ->
-            pm25Chart.axisLeft.axisMinimum
-        }
+//        set1.setDrawHorizontalHighlightIndicator(false)
+//        set1.fillFormatter = IFillFormatter { dataSet, dataProvider ->
+//            pm25Chart.axisLeft.axisMinimum
+//        }
 
 
         // create a data object with the data sets
@@ -636,5 +623,8 @@ class MainActivityFragment : Fragment() {
         pm25Chart.data = data
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+    }
 
 }
