@@ -1,5 +1,6 @@
 package com.lightworld.unusualweatherandroid
 
+import android.Manifest
 import android.graphics.Color
 import android.os.Bundle
 import android.support.v4.app.Fragment
@@ -7,6 +8,10 @@ import android.support.v7.widget.GridLayoutManager
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import com.amap.api.location.AMapLocation
+import com.amap.api.location.AMapLocationClient
+import com.amap.api.location.AMapLocationListener
 import com.github.mikephil.charting.components.Description
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.components.YAxis
@@ -16,10 +21,12 @@ import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.IFillFormatter
 import com.github.mikephil.charting.utils.ColorTemplate
 import com.google.gson.Gson
+import com.tbruyelle.rxpermissions2.RxPermissions
 import io.reactivex.Observable
 import io.reactivex.Observer
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
+import io.reactivex.functions.Consumer
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.fragment_main.*
 import okhttp3.OkHttpClient
@@ -48,13 +55,68 @@ class MainActivityFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-//        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/116.357358,39.976570/forecast.json")
-//        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/121.6544,25.1552/forecast.json")
-        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/111.613221,22.086306/forecast.json")
-//        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/125.395741,23.917337/forecast.json")
-
+        localRequestPermiss()
 
     }
+
+    private fun localRequestPermiss() {
+        var rxPermissions = RxPermissions(this);
+        rxPermissions
+            .request(
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.READ_PHONE_STATE
+            )
+            .subscribe(object : Consumer<Boolean> {
+                override fun accept(granted: Boolean) {
+                    if (granted) { // Always true pre-M
+                        getLocalPosition()
+
+                    } else {
+                        Toast.makeText(activity, "APP需要定位权限才能正常工作哦", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            });
+    }
+
+    var mLocationClient: AMapLocationClient? = null;
+
+    private fun getLocalPosition() {
+
+        //声明AMapLocationClient类对象
+//初始化定位
+        mLocationClient = AMapLocationClient(activity);
+//设置定位回调监听
+        mLocationClient!!.setLocationListener(mLocationListener);
+//启动定位
+        mLocationClient!!.startLocation();
+
+    }
+
+    //异步获取定位结果
+    var mLocationListener = object : AMapLocationListener {
+        override fun onLocationChanged(amapLocation: AMapLocation?) {
+            if (amapLocation != null) {
+                if (amapLocation.getErrorCode() == 0) {
+                    //解析定位结果
+                    var latitude = amapLocation.latitude
+                    var longitude = amapLocation.longitude
+                    getNetData("""https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/${longitude},${latitude}/forecast.json""")
+                    //        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/116.357358,39.976570/forecast.json")
+//        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/121.6544,25.1552/forecast.json")
+//        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/125.395741,23.917337/forecast.json")
+
+                    if (mLocationClient != null) {
+                        mLocationClient!!.onDestroy()
+                    }
+                }
+            }
+
+        }
+    }
+
 
     @Throws(IOException::class)
     private fun getNetData(url: String): Unit {
@@ -583,7 +645,7 @@ class MainActivityFragment : Fragment() {
 
 
         for (i in 0 until bean.result.daily.pm25.size) {
-            values.add(Entry(i.toFloat()*100, bean.result.daily.pm25.get(i).max.toFloat()))
+            values.add(Entry(i.toFloat() * 100, bean.result.daily.pm25.get(i).max.toFloat()))
         }
 
         val set1: LineDataSet
