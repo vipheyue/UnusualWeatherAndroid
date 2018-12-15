@@ -253,6 +253,7 @@ class MainActivityFragment : Fragment() {
         rainAndWeatherChart.setDragEnabled(false)
         rainAndWeatherChart.setScaleEnabled(false)
         rainAndWeatherChart.setPinchZoom(false)
+        rainAndWeatherChart.getLegend().setEnabled(false)
 
         rainAndWeatherChart.setDrawGridBackground(false)
 //        rainAndWeatherChart.setMaxHighlightDistance(300f)
@@ -269,7 +270,7 @@ class MainActivityFragment : Fragment() {
             resultBean?.let {
                 var dateString = it.result.daily.precipitation[(value / 100).toInt()].date
                 var skq = it.result.daily.skycon[(value / 100).toInt()].value
-                dateString.substring(5, dateString.length) + "" + Skycon.getLogo(skq)
+                dateString.substring(5, dateString.length)
             }
         }
 
@@ -530,7 +531,7 @@ class MainActivityFragment : Fragment() {
             resultBean?.let {
                 var dateString = it.result.daily.precipitation[(value / 100).toInt()].date
                 var skq = it.result.daily.skycon[(value / 100).toInt()].value
-                dateString.substring(5, dateString.length) + "" + Skycon.getLogo(skq)
+                dateString.substring(5, dateString.length)
             }
         }
 
