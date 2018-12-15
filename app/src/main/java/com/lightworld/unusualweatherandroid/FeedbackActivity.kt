@@ -37,8 +37,8 @@ class FeedbackActivity : AppCompatActivity() {
                     .build()
 
                 val request = Request.Builder()
-//                    .url("http://s.welightworld.com/mail/sendMailApi")
-                    .url("http://goodgoods.vaiwan.com/mail/sendMailApi")
+                    .url("http://s.welightworld.com/mail/sendMailApi")
+//                    .url("http://goodgoods.vaiwan.com/mail/sendMailApi")
                     .post(body)
                     .build()
 
