@@ -104,7 +104,7 @@ class MainActivityFragment : Fragment() {
                     var latitude = amapLocation.latitude
                     var longitude = amapLocation.longitude
                     getNetData("""https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/${longitude},${latitude}/forecast.json""")
-                    //        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/116.357358,39.976570/forecast.json")
+//                    getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/116.357358,39.976570/forecast.json")
 //        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/121.6544,25.1552/forecast.json")
 //        getNetData("https://api.caiyunapp.com/v2/Kg47BflU7B5pPOGN/125.395741,23.917337/forecast.json")
 

@@ -6,6 +6,7 @@ import android.support.design.widget.Snackbar
 import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
+import com.tencent.bugly.Bugly
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
@@ -14,7 +15,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
-
+        Bugly.init(getApplicationContext(), "2434c339f6", false);
         fab.setOnClickListener { view ->
             Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show()
@@ -36,6 +37,11 @@ class MainActivity : AppCompatActivity() {
                 startActivity(Intent(this, FeedbackActivity::class.java))
                 return true
             }
+
+//            R.id.action_refresh -> {
+//
+//                return true
+//            }
             else -> {
                 return super.onOptionsItemSelected(item)
             }
